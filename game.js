@@ -1215,7 +1215,6 @@ function updateLogic(dt) {
 
             // State: DEATH_2 (Permanent Dead puddle on the floor)
             if (ent.state === 'DEATH_2') {
-                // Completely ignores player, has 0 collision, can be walked over!
                 return;
             }
 
@@ -1400,7 +1399,15 @@ function render3D() {
         ctx.fillRect(r, drawStart, 1, drawEnd - drawStart);
     }
 
-    // DRAW DEPTH-SORTED SPRITES (Zombies, Coffee beans, donuts)
+    // MATHEMATICALLY CORRECT CAMERA PLANE BILLBOARD PROJECTION MATRIX FOR SPRITES
+    // This solves the bug where sprites/items drift with the camera when turning!
+    const dirX = Math.cos(playerAngle);
+    const dirY = Math.sin(playerAngle);
+
+    // Camera plane orthogonal vector scaling with the FOV tangent
+    const planeX = -Math.sin(playerAngle) * Math.tan(fov / 2);
+    const planeY = Math.cos(playerAngle) * Math.tan(fov / 2);
+
     const sortedSprites = entities
         .filter(ent => ent.active)
         .map(ent => {
@@ -1417,24 +1424,22 @@ function render3D() {
         const spriteX = ent.x - playerX;
         const spriteY = ent.y - playerY;
 
-        const invDet = 1.0 / (Math.cos(playerAngle + Math.PI/2) * Math.sin(playerAngle) - Math.cos(playerAngle) * Math.sin(playerAngle + Math.PI/2));
+        // Exact 2D matrix inversion for projection plane transform
+        const invDet = 1.0 / (planeX * dirY - dirX * planeY);
+        const transformX = invDet * (dirY * spriteX - dirX * spriteY);
+        const transformY = invDet * (-planeY * spriteX + planeX * spriteY);
 
-        const cosA = Math.cos(-playerAngle);
-        const sinA = Math.sin(-playerAngle);
-        const rotX = spriteX * cosA - spriteY * sinA;
-        const rotY = spriteX * sinA + spriteY * cosA;
+        // Sprite is behind or on the camera plane clip threshold
+        if (transformY <= 0.1) return;
 
-        if (rotY <= 0.1) return;
+        const spriteScreenX = Math.floor((screenW / 2) * (1 + transformX / transformY));
 
-        const spriteScreenX = Math.floor((screenW / 2) * (1 + rotX / rotY));
-
-        const spriteH = Math.abs(Math.floor(screenH / rotY)) * ent.scale;
+        const spriteH = Math.abs(Math.floor(screenH / transformY)) * ent.scale;
         const spriteW = spriteH * (sprites[ent.sprite].width / sprites[ent.sprite].height);
 
-        // Offset Y draw starting coordinate for DEAD bodies lying flat on the floor
         let yOffset = 0;
         if (ent.state === 'DEATH_2') {
-            yOffset = spriteH * 0.35; // Shifts dead puddle visual down closer to ground level
+            yOffset = spriteH * 0.35;
         }
 
         const drawStartY = -spriteH / 2 + screenH / 2 + yOffset;
@@ -1443,7 +1448,7 @@ function render3D() {
         const img = sprites[ent.sprite];
         for (let col = 0; col < spriteW; col++) {
             const screenX = Math.floor(drawStartX + col);
-            if (screenX >= 0 && screenX < screenW && rotY < wallZBuffer[screenX]) {
+            if (screenX >= 0 && screenX < screenW && transformY < wallZBuffer[screenX]) {
                 const texX = Math.floor((col / spriteW) * img.width);
 
                 ctx.drawImage(
@@ -1455,22 +1460,22 @@ function render3D() {
         }
     });
 
-    // DRAW COFFEE SPLASH PARTICLES (2D Billboards)
+    // MATHEMATICALLY CORRECT CAMERA PLANE BILLBOARD PROJECTION MATRIX FOR PARTICLES
     particles.forEach(p => {
         const dx = p.x - playerX;
         const dy = p.y - playerY;
-        const cosA = Math.cos(-playerAngle);
-        const sinA = Math.sin(-playerAngle);
-        const rotX = dx * cosA - dy * sinA;
-        const rotY = dx * sinA + dy * cosA;
 
-        if (rotY <= 0.1) return;
+        const invDet = 1.0 / (planeX * dirY - dirX * planeY);
+        const transformX = invDet * (dirY * dx - dirX * dy);
+        const transformY = invDet * (-planeY * dx + planeX * dy);
 
-        const px = Math.floor((screenW / 2) * (1 + rotX / rotY));
-        const py = Math.floor(screenH / 2 - (p.z * screenH) / rotY);
-        const size = Math.max(1, Math.floor(10 / rotY));
+        if (transformY <= 0.1) return;
 
-        if (px >= 0 && px < screenW && rotY < wallZBuffer[px]) {
+        const px = Math.floor((screenW / 2) * (1 + transformX / transformY));
+        const py = Math.floor(screenH / 2 - (p.z * screenH) / transformY);
+        const size = Math.max(1, Math.floor(10 / transformY));
+
+        if (px >= 0 && px < screenW && transformY < wallZBuffer[px]) {
             ctx.fillStyle = p.color;
             ctx.beginPath();
             ctx.arc(px, py, size, 0, Math.PI*2);

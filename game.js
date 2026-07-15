@@ -540,47 +540,113 @@ function buildProceduralAssets() {
     dCtx.fillRect(22, 34, 3, 2);
     sprites.donut = donutSprite;
 
-    // Espresso Gun - Idle / Ready
+    // RETRO WOODEN COFFEE GRINDER (Compact weapon layout)
+    // Idle / Ready state
     const gunIdle = document.createElement('canvas');
     gunIdle.width = 128;
     gunIdle.height = 128;
     const gCtx = gunIdle.getContext('2d');
-    gCtx.fillStyle = '#546e7a';
-    gCtx.fillRect(40, 60, 48, 68);
-    gCtx.fillStyle = '#37474f';
-    gCtx.fillRect(48, 40, 32, 20);
+
+    // Wood body of grinder
+    gCtx.fillStyle = '#8d6e63';
+    gCtx.fillRect(44, 65, 40, 50);
+    gCtx.strokeStyle = '#5d4037';
+    gCtx.lineWidth = 2;
+    gCtx.strokeRect(44, 65, 40, 50);
+
+    // Brass hopper funnel on top
     gCtx.fillStyle = '#ffd54f';
-    gCtx.fillRect(52, 45, 6, 8);
-    gCtx.fillRect(70, 45, 6, 8);
-    gCtx.fillStyle = '#ffffff';
     gCtx.beginPath();
-    gCtx.arc(64, 80, 10, 0, Math.PI*2);
+    gCtx.moveTo(40, 65);
+    gCtx.lineTo(88, 65);
+    gCtx.lineTo(76, 50);
+    gCtx.lineTo(52, 50);
+    gCtx.closePath();
     gCtx.fill();
-    gCtx.strokeStyle = '#b71c1c';
-    gCtx.lineWidth = 1.5;
-    gCtx.beginPath();
-    gCtx.moveTo(64, 80);
-    gCtx.lineTo(70, 75);
     gCtx.stroke();
+
+    // Black coffee beans peeking out of hopper
+    gCtx.fillStyle = '#3e2723';
+    gCtx.beginPath();
+    gCtx.arc(64, 58, 6, 0, Math.PI*2);
+    gCtx.fill();
+
+    // Metallic Crank pin
+    gCtx.fillStyle = '#90a4ae';
+    gCtx.fillRect(62, 40, 4, 10);
+
+    // Crank handle lever (Idle resting position)
+    gCtx.strokeStyle = '#b0bec5';
+    gCtx.lineWidth = 3;
+    gCtx.beginPath();
+    gCtx.moveTo(64, 40);
+    gCtx.lineTo(92, 32);
+    gCtx.stroke();
+
+    // Wooden crank knob on the handle
+    gCtx.fillStyle = '#5d4037';
+    gCtx.beginPath();
+    gCtx.arc(92, 32, 5, 0, Math.PI*2);
+    gCtx.fill();
+
     sprites.gunIdle = gunIdle;
 
-    // Espresso Gun - Fire / Muzzle steam Flash
+    // Firing State (Crank handle rapidly spinning, grinding beans / coffee grounds flying)
     const gunFire = document.createElement('canvas');
     gunFire.width = 128;
     gunFire.height = 128;
     const gfCtx = gunFire.getContext('2d');
-    gfCtx.drawImage(gunIdle, 0, 6); // Firing kickback recoil down 6 pixels
-    gfCtx.fillStyle = 'rgba(255, 152, 0, 0.4)';
+
+    // Redraw Wood body slightly vibrating
+    gfCtx.fillStyle = '#8d6e63';
+    gfCtx.fillRect(44, 67, 40, 50); // Vibrated down 2px
+    gfCtx.strokeStyle = '#5d4037';
+    gfCtx.lineWidth = 2;
+    gfCtx.strokeRect(44, 67, 40, 50);
+
+    // Brass hopper
+    gfCtx.fillStyle = '#ffd54f';
     gfCtx.beginPath();
-    gfCtx.arc(64, 30, 20, 0, Math.PI * 2);
+    gfCtx.moveTo(40, 67);
+    gfCtx.lineTo(88, 67);
+    gfCtx.lineTo(76, 52);
+    gfCtx.lineTo(52, 52);
+    gfCtx.closePath();
     gfCtx.fill();
-    gfCtx.strokeStyle = '#ffe0b2';
+    gfCtx.stroke();
+
+    // Crank pin
+    gfCtx.fillStyle = '#90a4ae';
+    gfCtx.fillRect(62, 42, 4, 10);
+
+    // Crank handle (Spinning rapidly to the opposite side!)
+    gfCtx.strokeStyle = '#b0bec5';
     gfCtx.lineWidth = 3;
     gfCtx.beginPath();
-    gfCtx.moveTo(60, 35); gfCtx.lineTo(58, 10);
-    gfCtx.moveTo(64, 35); gfCtx.lineTo(64, 5);
-    gfCtx.moveTo(68, 35); gfCtx.lineTo(70, 10);
+    gfCtx.moveTo(64, 42);
+    gfCtx.lineTo(38, 48); // Rotated left
     gfCtx.stroke();
+
+    gfCtx.fillStyle = '#5d4037';
+    gfCtx.beginPath();
+    gfCtx.arc(38, 48, 5, 0, Math.PI*2);
+    gfCtx.fill();
+
+    // Steaming coffee powder grounds cloud spraying from the front!
+    gfCtx.fillStyle = 'rgba(93, 64, 55, 0.6)';
+    gfCtx.beginPath();
+    gfCtx.arc(64, 25, 18, 0, Math.PI * 2);
+    gfCtx.fill();
+
+    // Splashing grounds/beans lines
+    gfCtx.strokeStyle = '#ffe0b2';
+    gfCtx.lineWidth = 2.5;
+    gfCtx.beginPath();
+    gfCtx.moveTo(60, 20); gfCtx.lineTo(55, 2);
+    gfCtx.moveTo(64, 20); gfCtx.lineTo(64, 0);
+    gfCtx.moveTo(68, 20); gfCtx.lineTo(73, 2);
+    gfCtx.stroke();
+
     sprites.gunFire = gunFire;
 }
 
@@ -1400,11 +1466,8 @@ function render3D() {
     }
 
     // MATHEMATICALLY CORRECT CAMERA PLANE BILLBOARD PROJECTION MATRIX FOR SPRITES
-    // This solves the bug where sprites/items drift with the camera when turning!
     const dirX = Math.cos(playerAngle);
     const dirY = Math.sin(playerAngle);
-
-    // Camera plane orthogonal vector scaling with the FOV tangent
     const planeX = -Math.sin(playerAngle) * Math.tan(fov / 2);
     const planeY = Math.cos(playerAngle) * Math.tan(fov / 2);
 
@@ -1424,16 +1487,13 @@ function render3D() {
         const spriteX = ent.x - playerX;
         const spriteY = ent.y - playerY;
 
-        // Exact 2D matrix inversion for projection plane transform
         const invDet = 1.0 / (planeX * dirY - dirX * planeY);
         const transformX = invDet * (dirY * spriteX - dirX * spriteY);
         const transformY = invDet * (-planeY * spriteX + planeX * spriteY);
 
-        // Sprite is behind or on the camera plane clip threshold
         if (transformY <= 0.1) return;
 
         const spriteScreenX = Math.floor((screenW / 2) * (1 + transformX / transformY));
-
         const spriteH = Math.abs(Math.floor(screenH / transformY)) * ent.scale;
         const spriteW = spriteH * (sprites[ent.sprite].width / sprites[ent.sprite].height);
 
@@ -1484,21 +1544,22 @@ function render3D() {
     });
 
     // DRAW FIRST-PERSON WEAPON WITH BOUNCING & KICKBACKS
+    // Shrink the first-person coffee grinder size down to a compact, beautiful, balanced scale (31%)
     const gunImg = shootAnimFrame > 0 ? sprites.gunFire : sprites.gunIdle;
-    const gunWidth = Math.floor(screenW * 0.45);
+    const gunWidth = Math.floor(screenW * 0.31);
     const gunHeight = gunWidth * (gunImg.height / gunImg.width);
 
     let bobX = 0;
     let bobY = 0;
     if (keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD']) {
         const speedFactor = Date.now() * 0.008;
-        bobX = Math.cos(speedFactor) * 6;
-        bobY = Math.abs(Math.sin(speedFactor)) * 6;
+        bobX = Math.cos(speedFactor) * 5;
+        bobY = Math.abs(Math.sin(speedFactor)) * 5;
     }
 
     if (shootAnimFrame > 0) {
-        bobX += (Math.random() - 0.5) * 8;
-        bobY += (Math.random() - 0.5) * 8;
+        bobX += (Math.random() - 0.5) * 6;
+        bobY += (Math.random() - 0.5) * 6;
     }
 
     ctx.drawImage(

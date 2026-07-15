@@ -1,15 +1,15 @@
 /*
  * ESPRESSO DOOM: CAFFEINE RUSH
  * A coffee-themed 3D Raycaster survival game written in vanilla JS.
- * Support for PC & Mobile out of the box, with synthesized chiptune audio.
- * Everything runs efficiently on HTML5 canvas and fits well under the 10 MB limit.
+ * Ported with classic DOOM state-machine structures, pain chances,
+ * responsive multi-touch PC & mobile controls, and synthesized chiptunes.
  */
 
 // Global Configuration & Constants
 const MAP_WIDTH = 24;
 const MAP_HEIGHT = 24;
 
-// 1: Cozy Cafe map grid (0 = empty space, >0 = textured walls)
+// Cozy Cafe Map (0 = empty, >0 = walls)
 const MAP_COZY_CAFE = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
     [1,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],
@@ -37,7 +37,7 @@ const MAP_COZY_CAFE = [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
 ];
 
-// 2: The Office Grind map grid
+// The Office Grind Map
 const MAP_OFFICE_GRIND = [
     [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2],
     [2,0,0,0,0,0,2,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,2],
@@ -65,7 +65,7 @@ const MAP_OFFICE_GRIND = [
     [2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2]
 ];
 
-// 3: Coffee Warehouse map grid
+// Coffee Warehouse Map
 const MAP_COFFEE_WAREHOUSE = [
     [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
     [3,0,0,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,0,0,0,0,0,3],
@@ -93,7 +93,7 @@ const MAP_COFFEE_WAREHOUSE = [
     [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3]
 ];
 
-// Audio Synthesizer (Web Audio API)
+// Web Audio API Synthesizer
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
@@ -105,25 +105,24 @@ function playSound(type) {
 
     switch (type) {
         case 'shoot': {
-            // High-pressure espresso steam burst sound
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(350, now);
-            osc.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+            osc.frequency.setValueAtTime(360, now);
+            osc.frequency.exponentialRampToValueAtTime(70, now + 0.16);
 
             gain.gain.setValueAtTime(0.3, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.16);
 
             osc.connect(gain);
             gain.connect(audioCtx.destination);
 
             osc.start(now);
-            osc.stop(now + 0.15);
+            osc.stop(now + 0.16);
 
-            // Noise overlay for steam sizzle
-            const bufferSize = audioCtx.sampleRate * 0.12;
+            // Sizzling steam noise
+            const bufferSize = audioCtx.sampleRate * 0.13;
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const data = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) {
@@ -132,54 +131,51 @@ function playSound(type) {
             const noise = audioCtx.createBufferSource();
             noise.buffer = buffer;
             const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.2, now);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+            noiseGain.gain.setValueAtTime(0.22, now);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.13);
             noise.connect(noiseGain);
             noiseGain.connect(audioCtx.destination);
             noise.start(now);
-            noise.stop(now + 0.12);
+            noise.stop(now + 0.13);
             break;
         }
         case 'zombie_groan': {
-            // Low disheveled yawn/groan
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(110, now);
-            osc.frequency.linearRampToValueAtTime(70, now + 0.5);
+            osc.frequency.setValueAtTime(115, now);
+            osc.frequency.linearRampToValueAtTime(65, now + 0.65);
 
-            gain.gain.setValueAtTime(0.15, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.7);
 
             osc.connect(gain);
             gain.connect(audioCtx.destination);
 
             osc.start(now);
-            osc.stop(now + 0.6);
+            osc.stop(now + 0.7);
             break;
         }
         case 'zombie_hit': {
-            // Wet splash / espresso hit sound
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(250, now);
-            osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+            osc.frequency.setValueAtTime(260, now);
+            osc.frequency.exponentialRampToValueAtTime(90, now + 0.12);
 
-            gain.gain.setValueAtTime(0.25, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+            gain.gain.setValueAtTime(0.22, now);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
 
             osc.connect(gain);
             gain.connect(audioCtx.destination);
 
             osc.start(now);
-            osc.stop(now + 0.1);
+            osc.stop(now + 0.12);
             break;
         }
         case 'pickup_caffeine': {
-            // Retro chime sound
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
@@ -199,26 +195,24 @@ function playSound(type) {
             break;
         }
         case 'player_hit': {
-            // Low-pitched thump
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
 
             osc.type = 'square';
-            osc.frequency.setValueAtTime(80, now);
-            osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+            osc.frequency.setValueAtTime(75, now);
+            osc.frequency.exponentialRampToValueAtTime(25, now + 0.22);
 
             gain.gain.setValueAtTime(0.4, now);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+            gain.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
 
             osc.connect(gain);
             gain.connect(audioCtx.destination);
 
             osc.start(now);
-            osc.stop(now + 0.2);
+            osc.stop(now + 0.22);
             break;
         }
         case 'level_clear': {
-            // Uplifting melody fanfare
             const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
             const dur = 0.08;
             notes.forEach((freq, idx) => {
@@ -242,7 +236,7 @@ function playSound(type) {
     }
 }
 
-// Background Chiptune Music Synthesizer
+// Background music looping synthesizer
 let musicInterval = null;
 let musicTempo = 135; // bpm
 function startBackgroundMusic() {
@@ -251,8 +245,7 @@ function startBackgroundMusic() {
         audioCtx.resume();
     }
 
-    // Coffee chiptune baseline pattern
-    const scale = [130.81, 146.83, 164.81, 196.00, 220.00]; // Pentatonic scale (C, D, E, G, A)
+    const scale = [130.81, 146.83, 164.81, 196.00, 220.00];
     const melody = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25];
     let step = 0;
 
@@ -261,7 +254,6 @@ function startBackgroundMusic() {
     musicInterval = setInterval(() => {
         const now = audioCtx.currentTime;
 
-        // Bassline (always active)
         if (step % 2 === 0) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -280,7 +272,6 @@ function startBackgroundMusic() {
             osc.stop(now + 0.2);
         }
 
-        // Random coffee melody notes for texture
         if (Math.random() < 0.4 && step % 4 !== 0) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -315,8 +306,6 @@ const textures = [];
 const sprites = {};
 
 function buildProceduralAssets() {
-    // We create tiny dynamic canvas contexts and draw stylized textures onto them
-
     const createTextureCanvas = (type) => {
         const cv = document.createElement('canvas');
         cv.width = 64;
@@ -324,11 +313,8 @@ function buildProceduralAssets() {
         const ctx = cv.getContext('2d');
 
         if (type === 1) {
-            // Cozy Cafe - Retro Dark Roasted Brick / Mahogany Wood Panels
-            ctx.fillStyle = '#2c1b18'; // Mahogany wood
+            ctx.fillStyle = '#2c1b18';
             ctx.fillRect(0, 0, 64, 64);
-
-            // Draw horizontal wood panels
             ctx.strokeStyle = '#1e110f';
             ctx.lineWidth = 2;
             for (let y = 0; y < 64; y += 16) {
@@ -337,7 +323,6 @@ function buildProceduralAssets() {
                 ctx.lineTo(64, y);
                 ctx.stroke();
 
-                // Add tiny vertical wood lines
                 for (let x = 8; x < 64; x += 16) {
                     ctx.beginPath();
                     ctx.moveTo(x + (y % 32 === 0 ? 8 : 0), y);
@@ -345,29 +330,21 @@ function buildProceduralAssets() {
                     ctx.stroke();
                 }
             }
-
-            // Warm latte highlights
             ctx.fillStyle = 'rgba(215, 204, 200, 0.15)';
             ctx.fillRect(0, 0, 64, 4);
 
         } else if (type === 2) {
-            // The Office Grind - Sleek beige/grey partition wall with a clock/charts
             ctx.fillStyle = '#cfd8dc';
             ctx.fillRect(0, 0, 64, 64);
-
-            // Metal frames
             ctx.strokeStyle = '#78909c';
             ctx.lineWidth = 2;
             ctx.strokeRect(0, 0, 64, 64);
 
-            // Blue sticky notes
             ctx.fillStyle = '#90caf9';
             ctx.fillRect(10, 15, 12, 12);
-            // Yellow coffee spill
             ctx.fillStyle = 'rgba(121, 85, 72, 0.4)';
             ctx.fillRect(14, 23, 8, 4);
 
-            // White clock at the top
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.arc(45, 20, 10, 0, Math.PI * 2);
@@ -375,7 +352,6 @@ function buildProceduralAssets() {
             ctx.strokeStyle = '#37474f';
             ctx.lineWidth = 1;
             ctx.stroke();
-            // Clock hands
             ctx.beginPath();
             ctx.moveTo(45, 20);
             ctx.lineTo(45, 15);
@@ -384,27 +360,20 @@ function buildProceduralAssets() {
             ctx.stroke();
 
         } else if (type === 3) {
-            // Coffee Warehouse - Coffee sack texture (Burlap) / Stacked crates
-            ctx.fillStyle = '#8d6e63'; // Burlap brown
+            ctx.fillStyle = '#8d6e63';
             ctx.fillRect(0, 0, 64, 64);
-
-            // Draw cross-hatch fibers
             ctx.strokeStyle = '#5d4037';
             ctx.lineWidth = 1;
             for (let i = 0; i < 64; i += 4) {
-                // Horizontal fibers
                 ctx.beginPath();
                 ctx.moveTo(0, i);
                 ctx.lineTo(64, i);
                 ctx.stroke();
-                // Vertical fibers
                 ctx.beginPath();
                 ctx.moveTo(i, 0);
                 ctx.lineTo(i, 64);
                 ctx.stroke();
             }
-
-            // Coffee sack text label
             ctx.fillStyle = '#3e2723';
             ctx.font = 'bold 10px monospace';
             ctx.fillText("COFFEE", 14, 25);
@@ -412,18 +381,14 @@ function buildProceduralAssets() {
             ctx.fillText("100%", 20, 49);
 
         } else if (type === 4) {
-            // Neon Cafe neon sign / Glass shelf with coffee makers
             ctx.fillStyle = '#1a0f0d';
             ctx.fillRect(0, 0, 64, 64);
-
-            // Glowing neon sign "OPEN / HOT"
             ctx.shadowBlur = 8;
             ctx.shadowColor = '#ff9800';
             ctx.strokeStyle = '#ff9800';
             ctx.lineWidth = 2;
             ctx.strokeRect(8, 8, 48, 48);
 
-            // Inside the neon coffee mug outline
             ctx.fillStyle = 'transparent';
             ctx.beginPath();
             ctx.moveTo(24, 28);
@@ -433,12 +398,10 @@ function buildProceduralAssets() {
             ctx.closePath();
             ctx.stroke();
 
-            // Handle
             ctx.beginPath();
             ctx.arc(40, 36, 4, -Math.PI/2, Math.PI/2);
             ctx.stroke();
 
-            // Coffee steam
             ctx.strokeStyle = '#ffcc80';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -447,131 +410,126 @@ function buildProceduralAssets() {
             ctx.moveTo(34, 24);
             ctx.bezierCurveTo(32, 20, 36, 18, 34, 14);
             ctx.stroke();
-
-            // Reset shadows
             ctx.shadowBlur = 0;
         }
 
         return cv;
     };
 
-    // Load textures
     for (let i = 1; i <= 4; i++) {
         textures[i] = createTextureCanvas(i);
     }
 
-    // CREATE SPRITES
+    // CREATE SPRITE FRAMES (DOOM state-machine visual frames)
 
-    // 1. Sleep-deprived Zombie (Yawning Office Worker with Mug)
-    const zombieSprite = document.createElement('canvas');
-    zombieSprite.width = 64;
-    zombieSprite.height = 128;
-    const zCtx = zombieSprite.getContext('2d');
+    // Sleep-deprived Zombie - Frame A (Left step)
+    const zombieA = document.createElement('canvas');
+    zombieA.width = 64; zombieA.height = 128;
+    const zACtx = zombieA.getContext('2d');
+    zACtx.fillStyle = '#37474f'; zACtx.fillRect(16, 48, 32, 60);
+    zACtx.fillStyle = '#cfd8dc'; zACtx.fillRect(12, 55, 12, 10); zACtx.fillRect(40, 55, 12, 10);
+    zACtx.fillStyle = '#f44336'; zACtx.fillRect(44, 60, 10, 12);
+    zACtx.fillStyle = '#ffcc80'; zACtx.fillRect(20, 20, 24, 28);
+    zACtx.fillStyle = '#b0bec5'; zACtx.fillRect(22, 28, 8, 6); zACtx.fillRect(34, 28, 8, 6);
+    zACtx.fillStyle = '#f44336'; zACtx.fillRect(24, 29, 2, 2); zACtx.fillRect(36, 29, 2, 2);
+    zACtx.fillStyle = '#000000'; zACtx.fillRect(27, 38, 10, 8); // Yawn mouth
+    zACtx.fillStyle = '#4e342e'; zACtx.fillRect(16, 14, 32, 8);
+    zACtx.fillStyle = '#795548'; zACtx.fillRect(14, 108, 14, 12); zACtx.fillRect(36, 108, 16, 12); // Foot step A
+    sprites.zombieA = zombieA;
 
-    // Draw body (Disheveled Pajamas / Business Suit)
-    zCtx.fillStyle = '#37474f'; // Slate blue/grey suit
-    zCtx.fillRect(16, 48, 32, 60);
-    // Arms reaching forward sleepwalker style
-    zCtx.fillStyle = '#cfd8dc'; // sleeves
-    zCtx.fillRect(12, 55, 12, 10);
-    zCtx.fillRect(40, 55, 12, 10);
+    // Sleep-deprived Zombie - Frame B (Right step)
+    const zombieB = document.createElement('canvas');
+    zombieB.width = 64; zombieB.height = 128;
+    const zBCtx = zombieB.getContext('2d');
+    zBCtx.fillStyle = '#37474f'; zBCtx.fillRect(16, 48, 32, 60);
+    zBCtx.fillStyle = '#cfd8dc'; zBCtx.fillRect(10, 55, 12, 10); zBCtx.fillRect(42, 55, 12, 10);
+    zBCtx.fillStyle = '#f44336'; zBCtx.fillRect(44, 60, 10, 12);
+    zBCtx.fillStyle = '#ffcc80'; zBCtx.fillRect(20, 20, 24, 28);
+    zBCtx.fillStyle = '#b0bec5'; zBCtx.fillRect(22, 28, 8, 6); zBCtx.fillRect(34, 28, 8, 6);
+    zBCtx.fillStyle = '#f44336'; zBCtx.fillRect(24, 29, 2, 2); zBCtx.fillRect(36, 29, 2, 2);
+    zBCtx.fillStyle = '#000000'; zBCtx.fillRect(27, 38, 10, 8);
+    zBCtx.fillStyle = '#4e342e'; zBCtx.fillRect(16, 14, 32, 8);
+    zBCtx.fillStyle = '#795548'; zBCtx.fillRect(12, 108, 16, 12); zBCtx.fillRect(34, 108, 14, 12); // Foot step B
+    sprites.zombieB = zombieB;
 
-    // Empty Coffee Mug clutching
-    zCtx.fillStyle = '#f44336'; // Red mug
-    zCtx.fillRect(44, 60, 10, 12);
-    zCtx.fillStyle = '#d32f2f';
-    zCtx.fillRect(52, 63, 4, 6);
+    // Sleep-deprived Zombie - Frame P (Pain / Hurt Flinch)
+    const zombiePain = document.createElement('canvas');
+    zombiePain.width = 64; zombiePain.height = 128;
+    const zPCtx = zombiePain.getContext('2d');
+    zPCtx.fillStyle = '#4e3629'; zPCtx.fillRect(14, 48, 36, 60); // Dark splatters
+    zPCtx.fillStyle = '#cfd8dc'; zPCtx.fillRect(8, 45, 12, 15); zPCtx.fillRect(44, 45, 12, 15); // Recoil arms up!
+    zPCtx.fillStyle = '#ffcc80'; zPCtx.fillRect(20, 16, 24, 28);
+    zPCtx.fillStyle = '#b71c1c'; zPCtx.fillRect(20, 16, 24, 10); // Red pain forehead
+    zPCtx.fillStyle = '#000000'; zPCtx.fillRect(24, 32, 16, 4); // Frown
+    sprites.zombiePain = zombiePain;
 
-    // Head / Face
-    zCtx.fillStyle = '#ffcc80'; // Skin tone
-    zCtx.fillRect(20, 20, 24, 28);
+    // Sleep-deprived Zombie - Frame D1 (Death Collapse Frame 1)
+    const zombieD1 = document.createElement('canvas');
+    zombieD1.width = 64; zombieD1.height = 128;
+    const zD1Ctx = zombieD1.getContext('2d');
+    zD1Ctx.fillStyle = '#37474f'; zD1Ctx.fillRect(14, 70, 36, 40); // Collapsing torso
+    zD1Ctx.fillStyle = '#ffcc80'; zD1Ctx.fillRect(20, 42, 24, 28);
+    zD1Ctx.fillStyle = '#b71c1c'; zD1Ctx.fillRect(18, 50, 28, 6);
+    sprites.zombieD1 = zombieD1;
 
-    // Tired dark eye-bags
-    zCtx.fillStyle = '#b0bec5';
-    zCtx.fillRect(22, 28, 8, 6);
-    zCtx.fillRect(34, 28, 8, 6);
+    // Sleep-deprived Zombie - Frame D2 (Death Collapse Frame 2 / Spilled Coffee puddle)
+    const zombieD2 = document.createElement('canvas');
+    zombieD2.width = 64; zombieD2.height = 128;
+    const zD2Ctx = zombieD2.getContext('2d');
+    // Dark mahogany brown coffee puddle spreading out wide on the floor
+    zD2Ctx.fillStyle = '#2c1b18';
+    zD2Ctx.beginPath();
+    zD2Ctx.ellipse(32, 110, 26, 12, 0, 0, Math.PI * 2);
+    zD2Ctx.fill();
+    zD2Ctx.fillStyle = '#4e342e'; // Disheveled hair floating in puddle
+    zD2Ctx.fillRect(24, 102, 16, 8);
+    zD2Ctx.fillStyle = '#f44336'; // Empty red mug sitting on side
+    zD2Ctx.fillRect(42, 104, 10, 8);
+    sprites.zombieD2 = zombieD2;
 
-    // Red sleep-deprived eyes
-    zCtx.fillStyle = '#f44336';
-    zCtx.fillRect(24, 29, 2, 2);
-    zCtx.fillRect(36, 29, 2, 2);
-
-    // Giant Yawning Mouth (Black void)
-    zCtx.fillStyle = '#000000';
-    zCtx.fillRect(27, 38, 10, 8);
-
-    // Messy bedhead hair
-    zCtx.fillStyle = '#4e342e';
-    zCtx.fillRect(16, 14, 32, 8);
-    zCtx.fillRect(14, 20, 6, 15);
-    zCtx.fillRect(44, 20, 6, 15);
-
-    // Slippers / Shoes
-    zCtx.fillStyle = '#795548';
-    zCtx.fillRect(14, 108, 16, 12);
-    zCtx.fillRect(34, 108, 16, 12);
-
-    sprites.zombie = zombieSprite;
-
-    // 2. Coffee Beans / Caffeine Collectible Ammo/Health
+    // Coffee Beans / Caffeine Collectible Ammo/Health
     const caffeineSprite = document.createElement('canvas');
     caffeineSprite.width = 64;
     caffeineSprite.height = 64;
     const cCtx = caffeineSprite.getContext('2d');
-
-    // Draw golden floating coffee bean with nice glowing aura
     cCtx.fillStyle = 'rgba(255, 152, 0, 0.3)';
     cCtx.beginPath();
     cCtx.arc(32, 32, 24, 0, Math.PI*2);
     cCtx.fill();
-
-    cCtx.fillStyle = '#5d4037'; // Coffee Bean body
+    cCtx.fillStyle = '#5d4037';
     cCtx.beginPath();
     cCtx.ellipse(32, 32, 14, 20, Math.PI / 6, 0, Math.PI*2);
     cCtx.fill();
-
-    // Center fold wave of the coffee bean
     cCtx.strokeStyle = '#ffe0b2';
     cCtx.lineWidth = 2;
     cCtx.beginPath();
     cCtx.moveTo(25, 16);
     cCtx.bezierCurveTo(28, 24, 36, 40, 39, 48);
     cCtx.stroke();
-
     sprites.caffeine = caffeineSprite;
 
-    // 3. Hot Croissant / Donut for Health
+    // Hot Croissant / Donut for Health
     const donutSprite = document.createElement('canvas');
     donutSprite.width = 64;
     donutSprite.height = 64;
     const dCtx = donutSprite.getContext('2d');
-
-    // Glow
     dCtx.fillStyle = 'rgba(233, 30, 99, 0.25)';
     dCtx.beginPath();
     dCtx.arc(32, 32, 22, 0, Math.PI * 2);
     dCtx.fill();
-
-    // Donut dough
     dCtx.fillStyle = '#ffb74d';
     dCtx.beginPath();
     dCtx.arc(32, 32, 16, 0, Math.PI * 2);
     dCtx.fill();
-
-    // Pink Frosting
     dCtx.fillStyle = '#f06292';
     dCtx.beginPath();
     dCtx.arc(32, 32, 13, 0, Math.PI * 2);
     dCtx.fill();
-
-    // Hole in the middle
     dCtx.globalCompositeOperation = 'destination-out';
     dCtx.beginPath();
     dCtx.arc(32, 32, 5, 0, Math.PI * 2);
     dCtx.fill();
     dCtx.globalCompositeOperation = 'source-over';
-
-    // Tiny sprinkles
     dCtx.fillStyle = '#00e676';
     dCtx.fillRect(24, 24, 3, 2);
     dCtx.fillStyle = '#29b6f6';
@@ -580,55 +538,42 @@ function buildProceduralAssets() {
     dCtx.fillRect(30, 38, 2, 3);
     dCtx.fillStyle = '#ffffff';
     dCtx.fillRect(22, 34, 3, 2);
-
     sprites.donut = donutSprite;
 
-    // 4. First-Person Espresso Gun animation frames
-    // Drawn directly on the screen at runtime, but let's build the assets anyway
+    // Espresso Gun - Idle / Ready
     const gunIdle = document.createElement('canvas');
     gunIdle.width = 128;
     gunIdle.height = 128;
     const gCtx = gunIdle.getContext('2d');
-
-    // Draw dual steam wands, sleek espresso dispenser, espresso tubes
-    // Centered gun with heavy machinery retro Doom layout
-    gCtx.fillStyle = '#546e7a'; // Metallic frame
+    gCtx.fillStyle = '#546e7a';
     gCtx.fillRect(40, 60, 48, 68);
     gCtx.fillStyle = '#37474f';
-    gCtx.fillRect(48, 40, 32, 20); // Gun muzzle / dispenser
-
-    // Shiny gold espresso nozzle dials
+    gCtx.fillRect(48, 40, 32, 20);
     gCtx.fillStyle = '#ffd54f';
     gCtx.fillRect(52, 45, 6, 8);
     gCtx.fillRect(70, 45, 6, 8);
-
-    // Espresso steam pressure dial
     gCtx.fillStyle = '#ffffff';
     gCtx.beginPath();
     gCtx.arc(64, 80, 10, 0, Math.PI*2);
     gCtx.fill();
-    gCtx.strokeStyle = '#b71c1c'; // Red zones
+    gCtx.strokeStyle = '#b71c1c';
     gCtx.lineWidth = 1.5;
     gCtx.beginPath();
     gCtx.moveTo(64, 80);
     gCtx.lineTo(70, 75);
     gCtx.stroke();
-
     sprites.gunIdle = gunIdle;
 
+    // Espresso Gun - Fire / Muzzle steam Flash
     const gunFire = document.createElement('canvas');
     gunFire.width = 128;
     gunFire.height = 128;
     const gfCtx = gunFire.getContext('2d');
-    gfCtx.drawImage(gunIdle, 0, 5); // Shift down slightly
-
-    // Overlap bright neon steaming espresso splash
+    gfCtx.drawImage(gunIdle, 0, 6); // Firing kickback recoil down 6 pixels
     gfCtx.fillStyle = 'rgba(255, 152, 0, 0.4)';
     gfCtx.beginPath();
     gfCtx.arc(64, 30, 20, 0, Math.PI * 2);
     gfCtx.fill();
-
-    // Hot steaming stream lines
     gfCtx.strokeStyle = '#ffe0b2';
     gfCtx.lineWidth = 3;
     gfCtx.beginPath();
@@ -636,15 +581,14 @@ function buildProceduralAssets() {
     gfCtx.moveTo(64, 35); gfCtx.lineTo(64, 5);
     gfCtx.moveTo(68, 35); gfCtx.lineTo(70, 10);
     gfCtx.stroke();
-
     sprites.gunFire = gunFire;
 }
 
 
-// Engine Game State
+// Engine Game State Variables
 let canvas, ctx;
-let playerX = 3.5, playerY = 3.5; // Player start position
-let playerAngle = 0; // Direction looking (radians)
+let playerX = 1.5, playerY = 1.5; // safe spawning coordinates
+let playerAngle = 0;
 let playerHealth = 100;
 let playerAmmo = 50;
 let playerScore = 0;
@@ -655,17 +599,20 @@ let gameActive = false;
 let isPaused = false;
 let highScores = { 1: 0, 2: 0, 3: 0 };
 
+// Visual juice variables
+let screenFlashColor = null;
+let screenFlashTimer = 0;
+
 // Controls Tracking
 const keys = {};
-let mouseLocked = false;
-let turnSpeed = 0.05;
-let moveSpeed = 0.08;
+let turnSpeed = 0.055;
+let moveSpeed = 0.09;
 
 // Entities (Zombies & Pickups)
 let entities = [];
 
 // Screen buffers / Resolution scaler
-const RENDER_SCALE = 2; // Render at 1/2 size for high frame rate, pixel-art retro doom feels
+const RENDER_SCALE = 2;
 let screenW, screenH;
 
 // Touch Control State
@@ -676,9 +623,14 @@ let touchCurX = 0;
 let touchCurY = 0;
 const joystickMaxRadius = 60;
 
+// Dual mobile drag-to-aim variables
+let rightTouchId = null;
+let rightTouchStartX = 0;
+let rightTouchStartY = 0;
+let rightTouchLastX = 0;
+
 // Input listeners setup
 function setupInput() {
-    // Keyboard
     window.addEventListener('keydown', (e) => {
         keys[e.code] = true;
 
@@ -694,15 +646,9 @@ function setupInput() {
         keys[e.code] = false;
     });
 
-    // Mouse Controls (Pointer lock for Doom layout)
-    canvas.addEventListener('click', (e) => {
+    canvas.addEventListener('mousedown', (e) => {
         if (!gameActive || isPaused) return;
-
-        // Mobile doesn't have pointer lock, so we detect if it is indeed mouse
-        if (window.matchMedia('(pointer: coarse)').matches) {
-            // Touch device, we do fire via button or touch
-            return;
-        }
+        if (window.matchMedia('(pointer: coarse)').matches) return;
 
         if (document.pointerLockElement !== canvas) {
             canvas.requestPointerLock();
@@ -713,40 +659,67 @@ function setupInput() {
 
     document.addEventListener('pointerlockchange', () => {
         if (document.pointerLockElement !== canvas && gameActive && !isPaused) {
-            // Auto-pause if pointer lock exited
             togglePause();
         }
     });
 
     window.addEventListener('mousemove', (e) => {
         if (document.pointerLockElement === canvas && gameActive && !isPaused) {
-            playerAngle += e.movementX * 0.003;
+            playerAngle += e.movementX * 0.0035;
         }
     });
 
-    // Mobile Controls Setup
     const leftJoy = document.getElementById('left-joystick-base');
     const knob = document.getElementById('left-joystick-knob');
     const fireBtn = document.getElementById('right-shoot-button');
 
-    leftJoy.addEventListener('touchstart', (e) => {
-        const touch = e.touches[0];
-        activeTouchId = touch.identifier;
-        const rect = leftJoy.getBoundingClientRect();
-        touchStartX = rect.left + rect.width / 2;
-        touchStartY = rect.top + rect.height / 2;
-        touchCurX = touch.clientX;
-        touchCurY = touch.clientY;
-    });
+    window.addEventListener('touchstart', (e) => {
+        if (!gameActive || isPaused) return;
 
-    leftJoy.addEventListener('touchmove', (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+
+            const rect = leftJoy.getBoundingClientRect();
+            const isInJoystick = (
+                touch.clientX >= rect.left &&
+                touch.clientX <= rect.right &&
+                touch.clientY >= rect.top &&
+                touch.clientY <= rect.bottom
+            );
+
+            const fireRect = fireBtn.getBoundingClientRect();
+            const isInFire = (
+                touch.clientX >= fireRect.left &&
+                touch.clientX <= fireRect.right &&
+                touch.clientY >= fireRect.top &&
+                touch.clientY <= fireRect.bottom
+            );
+
+            if (isInJoystick) {
+                activeTouchId = touch.identifier;
+                touchStartX = rect.left + rect.width / 2;
+                touchStartY = rect.top + rect.height / 2;
+                touchCurX = touch.clientX;
+                touchCurY = touch.clientY;
+            } else if (!isInFire && touch.clientX > window.innerWidth / 2) {
+                rightTouchId = touch.identifier;
+                rightTouchStartX = touch.clientX;
+                rightTouchStartY = touch.clientY;
+                rightTouchLastX = touch.clientX;
+            }
+        }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!gameActive || isPaused) return;
+
         for (let i = 0; i < e.touches.length; i++) {
             const touch = e.touches[i];
+
             if (touch.identifier === activeTouchId) {
                 touchCurX = touch.clientX;
                 touchCurY = touch.clientY;
 
-                // Position the knob
                 let dx = touchCurX - touchStartX;
                 let dy = touchCurY - touchStartY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -757,40 +730,49 @@ function setupInput() {
                 }
 
                 knob.style.transform = `translate(${dx}px, ${dy}px)`;
+            } else if (touch.identifier === rightTouchId) {
+                const diffX = touch.clientX - rightTouchLastX;
+                rightTouchLastX = touch.clientX;
+                playerAngle += diffX * 0.007;
             }
         }
-    });
+    }, { passive: false });
 
-    const resetJoystick = () => {
-        activeTouchId = null;
-        touchStartX = 0;
-        touchStartY = 0;
-        touchCurX = 0;
-        touchCurY = 0;
-        knob.style.transform = 'translate(0px, 0px)';
+    const handleTouchEnd = (e) => {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            const touch = e.changedTouches[i];
+            if (touch.identifier === activeTouchId) {
+                activeTouchId = null;
+                touchStartX = 0;
+                touchStartY = 0;
+                touchCurX = 0;
+                touchCurY = 0;
+                knob.style.transform = 'translate(0px, 0px)';
+            } else if (touch.identifier === rightTouchId) {
+                rightTouchId = null;
+            }
+        }
     };
 
-    leftJoy.addEventListener('touchend', resetJoystick);
-    leftJoy.addEventListener('touchcancel', resetJoystick);
+    window.addEventListener('touchend', handleTouchEnd);
+    window.addEventListener('touchcancel', handleTouchEnd);
 
-    // Mobile shoot button
     fireBtn.addEventListener('touchstart', (e) => {
         e.preventDefault();
+        e.stopPropagation();
         triggerShoot();
     });
 
-    // Resize Event
     window.addEventListener('resize', resizeCanvas);
 }
 
 function resizeCanvas() {
     screenW = Math.floor(window.innerWidth / RENDER_SCALE);
-    screenH = Math.floor((window.innerHeight - 90) / RENDER_SCALE); // Reserve room for HUD
+    screenH = Math.floor((window.innerHeight - 90) / RENDER_SCALE);
 
     canvas.width = screenW;
     canvas.height = screenH;
 
-    // Check if we are on a coarse pointer device (mobile)
     const mobileUI = document.getElementById('mobile-controls');
     if (window.matchMedia('(pointer: coarse)').matches) {
         mobileUI.classList.remove('hidden');
@@ -800,9 +782,9 @@ function resizeCanvas() {
 }
 
 
-// Game loop and Logic
+// Game loops & weapon/zombie state machines
 let lastTime = 0;
-let shootAnimFrame = 0; // 0 = idle, 1..10 = firing animation
+let shootAnimFrame = 0;
 
 function initGame() {
     canvas = document.getElementById('game-canvas');
@@ -813,14 +795,12 @@ function initGame() {
     setupInput();
     resizeCanvas();
 
-    // Load local highscore
     const storedScores = localStorage.getItem('espresso_doom_highscores');
     if (storedScores) {
         highScores = JSON.parse(storedScores);
     }
     updateGlobalHighScoreDisplay();
 
-    // Main loop binder
     requestAnimationFrame(gameLoop);
 }
 
@@ -836,25 +816,22 @@ function startGame(levelNum) {
     else if (levelNum === 2) levelGrid = MAP_OFFICE_GRIND;
     else levelGrid = MAP_COFFEE_WAREHOUSE;
 
-    // Initialize Player
-    playerX = 3.5;
-    playerY = 3.5;
+    playerX = 1.5;
+    playerY = 1.5;
     playerAngle = 0;
     playerHealth = 100;
     playerAmmo = 60;
     playerScore = 0;
     currentWave = 1;
 
-    // Wipe entities
+    screenFlashColor = null;
+    screenFlashTimer = 0;
+
     entities = [];
 
-    // Spawn initial pick-ups
     spawnStaticItems();
-
-    // Start Spawning wave 1
     spawnWave(currentWave);
 
-    // UI swaps
     document.getElementById('menu-screen').classList.add('hidden');
     document.getElementById('pause-screen').classList.add('hidden');
     document.getElementById('gameover-screen').classList.add('hidden');
@@ -868,13 +845,13 @@ function startGame(levelNum) {
 }
 
 function spawnStaticItems() {
-    // Distribute delicious treats (donuts) and espresso coffee bean sacks / pickups programmatically
-    // Select open coordinates in the grid to place donuts and ammo
-    for (let r = 2; r < MAP_HEIGHT - 2; r += 4) {
-        for (let c = 2; c < MAP_WIDTH - 2; c += 4) {
-            if (levelGrid[r][c] === 0 && (r > 6 || c > 6)) {
+    for (let r = 1; r < MAP_HEIGHT - 1; r++) {
+        for (let c = 1; c < MAP_WIDTH - 1; c++) {
+            if (levelGrid[r][c] === 0) {
+                if (r === 1 && c === 1) continue;
+
                 const rand = Math.random();
-                if (rand < 0.25) {
+                if (rand < 0.12) {
                     entities.push({
                         type: 'caffeine',
                         x: c + 0.5,
@@ -884,7 +861,7 @@ function spawnStaticItems() {
                         pickupType: 'ammo',
                         active: true
                     });
-                } else if (rand < 0.45) {
+                } else if (rand < 0.20) {
                     entities.push({
                         type: 'donut',
                         x: c + 0.5,
@@ -902,8 +879,6 @@ function spawnStaticItems() {
 
 function spawnWave(wave) {
     const numZombies = wave * 2 + 1;
-
-    // Let's spawn zombies in areas far away from the player
     let spawned = 0;
     let attempts = 0;
 
@@ -913,17 +888,20 @@ function spawnWave(wave) {
         const ry = Math.floor(Math.random() * (MAP_HEIGHT - 2)) + 1;
 
         if (levelGrid[ry][rx] === 0) {
-            // Distance check to player to avoid spawn camping
             const dist = Math.hypot(rx + 0.5 - playerX, ry + 0.5 - playerY);
-            if (dist > 5) {
+            if (dist > 4.5) {
+                // DOOM State-Machine Based Zombie Entity
                 entities.push({
                     type: 'zombie',
                     x: rx + 0.5,
                     y: ry + 0.5,
-                    sprite: 'zombie',
+                    state: 'CHASE', // State list: CHASE, PAIN, DEATH_1, DEATH_2
+                    stateTimer: 0,
+                    walkAnimTime: Math.random() * 10,
+                    sprite: 'zombieA',
                     scale: 0.8,
                     health: 10 + wave * 5,
-                    speed: 0.02 + Math.min(0.02, wave * 0.005),
+                    speed: 0.02 + Math.min(0.025, wave * 0.005),
                     damage: 8 + wave * 2,
                     lastGroan: Date.now() + Math.random() * 4000,
                     active: true
@@ -938,30 +916,28 @@ function triggerShoot() {
     if (!gameActive || isPaused || playerAmmo <= 0 || shootAnimFrame > 0) return;
 
     playerAmmo--;
-    shootAnimFrame = 1;
+    shootAnimFrame = 1; // Transition Weapon FSM to firing flash state
     updateHUD();
     playSound('shoot');
 
-    // Bullet/Espresso splash raycast
-    // Shoot ray exactly down player angle and check which entity or wall it hits
+    triggerScreenFlash('rgba(255, 236, 179, 0.15)', 0.12);
+
+    // Raycasting shooting vector
     let minT = Infinity;
     let hitZombie = null;
 
-    // Bullet trace
     entities.forEach(ent => {
-        if (ent.type === 'zombie' && ent.active) {
-            // Simple circle collision against ray
+        if (ent.type === 'zombie' && ent.active && ent.state !== 'DEATH_2') {
             const dx = ent.x - playerX;
             const dy = ent.y - playerY;
 
-            // Project entity onto looking vector
             const lookX = Math.cos(playerAngle);
             const lookY = Math.sin(playerAngle);
             const projection = dx * lookX + dy * lookY;
 
             if (projection > 0) {
                 const perpDistSq = (dx * dx + dy * dy) - projection * projection;
-                if (perpDistSq < 0.2) { // Hit box radius
+                if (perpDistSq < 0.22) {
                     if (projection < minT) {
                         minT = projection;
                         hitZombie = ent;
@@ -971,12 +947,10 @@ function triggerShoot() {
         }
     });
 
-    // Also raycast wall to ensure we don't shoot zombies behind walls
     let wallT = Infinity;
     const sinA = Math.sin(playerAngle);
     const cosA = Math.cos(playerAngle);
 
-    // Simple raycast to find nearest wall
     for (let d = 0.1; d < 20; d += 0.1) {
         const wx = Math.floor(playerX + cosA * d);
         const wy = Math.floor(playerY + sinA * d);
@@ -987,25 +961,33 @@ function triggerShoot() {
     }
 
     if (hitZombie && minT < wallT) {
-        // Hit!
+        // Hit! Subtract health
         hitZombie.health -= 15;
         playSound('zombie_hit');
-
-        // Spawn temporary blood/caffeine splash particles
         spawnSplashParticles(hitZombie.x, hitZombie.y);
 
-        if (hitZombie.health <= 0) {
-            hitZombie.active = false;
+        // Doom-style "Pain Chance": 70% probability to transition walking zombie to PAIN flinch state
+        if (hitZombie.health > 0) {
+            if (Math.random() < 0.70 && hitZombie.state !== 'PAIN') {
+                hitZombie.state = 'PAIN';
+                hitZombie.stateTimer = 0.35; // stuns them for 0.35 seconds
+                hitZombie.sprite = 'zombiePain';
+            }
+        } else {
+            // Initiate sequential DEATH State Machine
+            hitZombie.state = 'DEATH_1';
+            hitZombie.stateTimer = 0.30; // 0.3 seconds in collapsing frame
+            hitZombie.sprite = 'zombieD1';
+
             playerScore += 100;
             updateHUD();
 
-            // Check if wave is fully cleared
-            const aliveZombies = entities.filter(e => e.type === 'zombie' && e.active).length;
+            // Re-check wave state
+            const aliveZombies = entities.filter(e => e.type === 'zombie' && e.active && e.state !== 'DEATH_1' && e.state !== 'DEATH_2').length;
             if (aliveZombies === 0) {
                 currentWave++;
                 playSound('level_clear');
                 spawnWave(currentWave);
-                // Replenish partial ammo/health per wave clear
                 playerAmmo = Math.min(100, playerAmmo + 20);
                 updateHUD();
             }
@@ -1021,13 +1003,18 @@ function spawnSplashParticles(x, y) {
             x: x,
             y: y,
             z: 0.1 + Math.random() * 0.4,
-            vx: (Math.random() - 0.5) * 0.1,
-            vy: (Math.random() - 0.5) * 0.1,
-            vz: (Math.random()) * 0.1,
-            color: '#4e3629', // Coffee drop splash!
+            vx: (Math.random() - 0.5) * 0.12,
+            vy: (Math.random() - 0.5) * 0.12,
+            vz: (Math.random()) * 0.12,
+            color: '#4e3629',
             life: 1.0
         });
     }
+}
+
+function triggerScreenFlash(color, duration) {
+    screenFlashColor = color;
+    screenFlashTimer = duration;
 }
 
 function updateHUD() {
@@ -1037,8 +1024,6 @@ function updateHUD() {
     document.getElementById('ammo-bar').style.width = playerAmmo + '%';
     document.getElementById('hud-score').textContent = String(playerScore).padStart(6, '0');
     document.getElementById('hud-wave').textContent = currentWave;
-
-    // Fills/empties coffee cup HUD status based on health
     document.getElementById('coffee-level').style.height = playerHealth + '%';
 }
 
@@ -1063,14 +1048,12 @@ function gameOver() {
     document.exitPointerLock();
     stopBackgroundMusic();
 
-    // Update personal/global high scores
     if (playerScore > highScores[currentLevel]) {
         highScores[currentLevel] = playerScore;
         localStorage.setItem('espresso_doom_highscores', JSON.stringify(highScores));
         updateGlobalHighScoreDisplay();
     }
 
-    // Fill final statistics
     document.getElementById('final-score').textContent = playerScore;
     document.getElementById('final-waves').textContent = currentWave - 1;
 
@@ -1081,7 +1064,7 @@ function gameOver() {
 }
 
 
-// Engine Game Loop & Raycasting Renderer
+// Engine Loop
 function gameLoop(time) {
     requestAnimationFrame(gameLoop);
 
@@ -1097,19 +1080,48 @@ function gameLoop(time) {
     render3D();
 }
 
+function isCellEmpty(x, y) {
+    const gridX = Math.floor(x);
+    const gridY = Math.floor(y);
+    if (gridX < 0 || gridX >= MAP_WIDTH || gridY < 0 || gridY >= MAP_HEIGHT) return false;
+    return levelGrid[gridY][gridX] === 0;
+}
+
+function checkCircleCollision(newX, newY, radius) {
+    const directions = [
+        [radius, 0], [-radius, 0], [0, radius], [0, -radius],
+        [radius * 0.7, radius * 0.7], [-radius * 0.7, radius * 0.7],
+        [radius * 0.7, -radius * 0.7], [-radius * 0.7, -radius * 0.7]
+    ];
+
+    for (let i = 0; i < directions.length; i++) {
+        const testX = newX + directions[i][0];
+        const testY = newY + directions[i][1];
+        if (!isCellEmpty(testX, testY)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function updateLogic(dt) {
-    // 1. ESPRESSO GUN ANIMATION
+    // 1. ESPRESSO GUN WEAPON STATE MACHINE
     if (shootAnimFrame > 0) {
         shootAnimFrame++;
         if (shootAnimFrame > 8) shootAnimFrame = 0;
     }
 
-    // 2. MOVEMENT CONTROLS
+    // 2. Visual Flash Timers
+    if (screenFlashTimer > 0) {
+        screenFlashTimer -= dt;
+        if (screenFlashTimer <= 0) screenFlashColor = null;
+    }
+
+    // 3. MOVEMENT CONTROLS
     let moveX = 0;
     let moveY = 0;
     let rotation = 0;
 
-    // PC inputs
     if (keys['KeyW'] || keys['ArrowUp']) {
         moveX += Math.cos(playerAngle);
         moveY += Math.sin(playerAngle);
@@ -1119,12 +1131,10 @@ function updateLogic(dt) {
         moveY -= Math.sin(playerAngle);
     }
     if (keys['KeyA']) {
-        // Strafe Left
         moveX += Math.sin(playerAngle);
         moveY -= Math.cos(playerAngle);
     }
     if (keys['KeyD']) {
-        // Strafe Right
         moveX -= Math.sin(playerAngle);
         moveY += Math.cos(playerAngle);
     }
@@ -1135,7 +1145,6 @@ function updateLogic(dt) {
         rotation += 1.2 * turnSpeed;
     }
 
-    // Mobile Virtual Joystick input
     if (activeTouchId !== null) {
         const dx = touchCurX - touchStartX;
         const dy = touchCurY - touchStartY;
@@ -1145,121 +1154,144 @@ function updateLogic(dt) {
             const angle = Math.atan2(dy, dx);
             const intensity = Math.min(1, dist / joystickMaxRadius);
 
-            // Let the joystick act as movement/rotation
-            // Forward/Back based on vertical intensity
             const forward = -Math.sin(angle) * intensity;
-            // Strafe based on horizontal intensity
             const strafe = Math.cos(angle) * intensity;
 
-            // Combine with forward / strafe components
             moveX += Math.cos(playerAngle) * forward + Math.sin(playerAngle) * strafe;
             moveY += Math.sin(playerAngle) * forward - Math.cos(playerAngle) * strafe;
         }
     }
 
-    // Handle Rotation update
     playerAngle += rotation;
 
-    // Sliding collision check
+    // Player Wall Sliding Collision
     if (moveX !== 0 || moveY !== 0) {
-        // Normalize
         const len = Math.hypot(moveX, moveY);
         const dx = (moveX / len) * moveSpeed;
         const dy = (moveY / len) * moveSpeed;
 
-        // Simple bounding box checks against walls
-        const nextX = playerX + dx;
-        const nextY = playerY + dy;
         const radius = 0.35;
 
-        // X Check
-        const wallXLeft = Math.floor(nextX - radius);
-        const wallXRight = Math.floor(nextX + radius);
-        const currentYGrid = Math.floor(playerY);
-
-        if (levelGrid[currentYGrid][wallXLeft] === 0 && levelGrid[currentYGrid][wallXRight] === 0) {
-            playerX = nextX;
+        const testX = playerX + dx;
+        if (checkCircleCollision(testX, playerY, radius)) {
+            playerX = testX;
         }
 
-        // Y Check
-        const wallYTop = Math.floor(nextY - radius);
-        const wallYBottom = Math.floor(nextY + radius);
-        const currentXGrid = Math.floor(playerX);
-
-        if (levelGrid[wallYTop][currentXGrid] === 0 && levelGrid[wallYBottom][currentXGrid] === 0) {
-            playerY = nextY;
+        const testY = playerY + dy;
+        if (checkCircleCollision(playerX, testY, radius)) {
+            playerY = testY;
         }
     }
 
-    // 3. UPDATE ENTITIES (Zombies, Pickups)
+    // 4. ENTITY UPDATE & ZOMBIE STATE MACHINE
     const now = Date.now();
     entities.forEach(ent => {
         if (!ent.active) return;
 
         const distToPlayer = Math.hypot(playerX - ent.x, playerY - ent.y);
 
-        // Zombie logic
         if (ent.type === 'zombie') {
-            // Periodic Sleep Groaning
-            if (now > ent.lastGroan) {
-                playSound('zombie_groan');
-                ent.lastGroan = now + 4000 + Math.random() * 5000;
+
+            // State: PAIN (Flinch stun)
+            if (ent.state === 'PAIN') {
+                ent.stateTimer -= dt;
+                if (ent.stateTimer <= 0) {
+                    ent.state = 'CHASE'; // Resume chase
+                    ent.sprite = 'zombieA';
+                }
+                return; // Frozen/Stunned while in Pain state!
             }
 
-            // Move toward player
-            if (distToPlayer > 0.45) {
-                const angleToPlayer = Math.atan2(playerY - ent.y, playerX - ent.x);
-                const stepX = Math.cos(angleToPlayer) * ent.speed;
-                const stepY = Math.sin(angleToPlayer) * ent.speed;
-
-                // Zombie wall collision check
-                const nX = ent.x + stepX;
-                const nY = ent.y + stepY;
-                if (levelGrid[Math.floor(ent.y)][Math.floor(nX)] === 0) {
-                    ent.x = nX;
+            // State: DEATH_1 (Collapsing/Falling Frame)
+            if (ent.state === 'DEATH_1') {
+                ent.stateTimer -= dt;
+                if (ent.stateTimer <= 0) {
+                    ent.state = 'DEATH_2'; // Settle into dead puddle frame
+                    ent.sprite = 'zombieD2';
+                    ent.scale = 0.55; // Lower height profile for puddle
                 }
-                if (levelGrid[Math.floor(nY)][Math.floor(ent.x)] === 0) {
-                    ent.y = nY;
+                return;
+            }
+
+            // State: DEATH_2 (Permanent Dead puddle on the floor)
+            if (ent.state === 'DEATH_2') {
+                // Completely ignores player, has 0 collision, can be walked over!
+                return;
+            }
+
+            // State: CHASE (Default Zombie AI)
+            if (ent.state === 'CHASE') {
+                // Periodic groan
+                if (now > ent.lastGroan) {
+                    playSound('zombie_groan');
+                    ent.lastGroan = now + 4000 + Math.random() * 5000;
                 }
-            } else {
-                // Inside attack range! Hit player
-                playerHealth -= ent.damage;
-                playSound('player_hit');
-                // Knockback player slightly
-                const attackAngle = Math.atan2(playerY - ent.y, playerX - ent.x);
-                playerX += Math.cos(attackAngle) * 0.15;
-                playerY += Math.sin(attackAngle) * 0.15;
 
-                updateHUD();
+                // Shuffle Leg Animations (A/B flip-flop walking frames)
+                ent.walkAnimTime += dt * 5.5;
+                ent.sprite = (Math.floor(ent.walkAnimTime) % 2 === 0) ? 'zombieA' : 'zombieB';
 
-                if (playerHealth <= 0) {
-                    playerHealth = 0;
+                if (distToPlayer > 0.48) {
+                    const angleToPlayer = Math.atan2(playerY - ent.y, playerX - ent.x);
+                    const stepX = Math.cos(angleToPlayer) * ent.speed;
+                    const stepY = Math.sin(angleToPlayer) * ent.speed;
+
+                    const zombieRadius = 0.30;
+                    const nextZX = ent.x + stepX;
+                    if (checkCircleCollision(nextZX, ent.y, zombieRadius)) {
+                        ent.x = nextZX;
+                    }
+                    const nextZY = ent.y + stepY;
+                    if (checkCircleCollision(ent.x, nextZY, zombieRadius)) {
+                        ent.y = nextZY;
+                    }
+                } else {
+                    // Inside melee attack range! Hit player
+                    playerHealth -= ent.damage;
+                    playSound('player_hit');
+                    triggerScreenFlash('rgba(244, 67, 54, 0.35)', 0.22);
+
+                    const attackAngle = Math.atan2(playerY - ent.y, playerX - ent.x);
+                    const kbX = playerX + Math.cos(attackAngle) * 0.15;
+                    const kbY = playerY + Math.sin(attackAngle) * 0.15;
+                    if (checkCircleCollision(kbX, kbY, 0.35)) {
+                        playerX = kbX;
+                        playerY = kbY;
+                    }
+
                     updateHUD();
-                    gameOver();
+
+                    if (playerHealth <= 0) {
+                        playerHealth = 0;
+                        updateHUD();
+                        gameOver();
+                    }
                 }
             }
         }
 
-        // Collectibles pickup check
+        // Collectibles check
         if (ent.pickupType && distToPlayer < 0.6) {
             ent.active = false;
             playSound('pickup_caffeine');
 
             if (ent.pickupType === 'health') {
                 playerHealth = Math.min(100, playerHealth + 25);
+                triggerScreenFlash('rgba(76, 175, 80, 0.25)', 0.15);
             } else if (ent.pickupType === 'ammo') {
                 playerAmmo = Math.min(100, playerAmmo + 30);
+                triggerScreenFlash('rgba(255, 152, 0, 0.25)', 0.15);
             }
             updateHUD();
         }
     });
 
-    // 4. PARTICLES UPDATE
+    // 5. PARTICLES UPDATE
     particles.forEach((p, idx) => {
         p.x += p.vx;
         p.y += p.vy;
         p.z += p.vz;
-        p.vz -= 0.01; // Gravity
+        p.vz -= 0.01;
         p.life -= dt * 2.0;
         if (p.life <= 0) {
             particles.splice(idx, 1);
@@ -1268,27 +1300,21 @@ function updateLogic(dt) {
 }
 
 function render3D() {
-    // 1. CLEAR SCREEN WITH COFFEE BAR FLOOR & CEILING
-    // Ceiling: Dark Roasted Espresso Bean Brown
     ctx.fillStyle = '#1c100e';
     ctx.fillRect(0, 0, screenW, screenH / 2);
-    // Floor: Cozy Cream Latte shade
     ctx.fillStyle = '#422a22';
     ctx.fillRect(0, screenH / 2, screenW, screenH / 2);
 
-    // 2. RAYCAST WALLS
-    const fov = Math.PI / 3; // 60 degrees
+    const fov = Math.PI / 3;
     const halfFov = fov / 2;
     const numRays = screenW;
     const wallZBuffer = new Float32Array(numRays);
 
     for (let r = 0; r < numRays; r++) {
-        // Calculate ray angle based on FOV
         const rayAngle = playerAngle - halfFov + (r / numRays) * fov;
         const cosR = Math.cos(rayAngle);
         const sinR = Math.sin(rayAngle);
 
-        // DDA (Digital Differential Analysis) algorithm for precise grid intersections
         let mapX = Math.floor(playerX);
         let mapY = Math.floor(playerY);
 
@@ -1298,7 +1324,7 @@ function render3D() {
 
         let stepX, stepY;
         let hit = 0;
-        let side = 0; // 0 = NS wall, 1 = EW wall
+        let side = 0;
 
         if (cosR < 0) {
             stepX = -1;
@@ -1316,7 +1342,6 @@ function render3D() {
             sideDistY = (mapY + 1.0 - playerY) * deltaDistY;
         }
 
-        // Loop to find wall collision
         let limit = 0;
         while (hit === 0 && limit < 50) {
             limit++;
@@ -1329,7 +1354,6 @@ function render3D() {
                 mapY += stepY;
                 side = 1;
             }
-            // Check wall grid coordinates
             if (mapX >= 0 && mapX < MAP_WIDTH && mapY >= 0 && mapY < MAP_HEIGHT) {
                 if (levelGrid[mapY][mapX] > 0) {
                     hit = levelGrid[mapY][mapX];
@@ -1339,7 +1363,6 @@ function render3D() {
             }
         }
 
-        // Calculate perpendicular ray distance to eliminate fisheye distortion
         let perpWallDist;
         if (side === 0) {
             perpWallDist = (mapX - playerX + (1 - stepX) / 2) / cosR;
@@ -1350,10 +1373,8 @@ function render3D() {
         if (perpWallDist <= 0) perpWallDist = 0.01;
         wallZBuffer[r] = perpWallDist;
 
-        // Height of line to draw on screen
         const lineHeight = Math.floor(screenH / perpWallDist);
 
-        // Calculate texture coordinates
         let wallX;
         if (side === 0) wallX = playerY + perpWallDist * sinR;
         else wallX = playerX + perpWallDist * cosR;
@@ -1363,26 +1384,23 @@ function render3D() {
         if (side === 0 && cosR > 0) texX = 64 - texX - 1;
         if (side === 1 && sinR < 0) texX = 64 - texX - 1;
 
-        // Calculate draw coordinates
         let drawStart = -lineHeight / 2 + screenH / 2;
         let drawEnd = lineHeight / 2 + screenH / 2;
 
-        // Slice column from wall texture canvas
         const texCanvas = textures[hit] || textures[1];
 
         ctx.drawImage(
             texCanvas,
-            texX, 0, 1, 64, // Source texture rect
-            r, drawStart, 1, drawEnd - drawStart // Screen target rect
+            texX, 0, 1, 64,
+            r, drawStart, 1, drawEnd - drawStart
         );
 
-        // Add shadowing based on side and depth to give beautiful 3D atmospheric perspective
         const depthOpacity = Math.min(0.85, perpWallDist / 12);
         ctx.fillStyle = `rgba(13, 8, 7, ${side === 1 ? depthOpacity * 0.5 + 0.2 : depthOpacity})`;
         ctx.fillRect(r, drawStart, 1, drawEnd - drawStart);
     }
 
-    // 3. DRAW DEPTH-SORTED SPRITES (Zombies, Coffee beans, donuts)
+    // DRAW DEPTH-SORTED SPRITES (Zombies, Coffee beans, donuts)
     const sortedSprites = entities
         .filter(ent => ent.active)
         .map(ent => {
@@ -1393,42 +1411,41 @@ function render3D() {
                 dist: dx * dx + dy * dy
             };
         })
-        .sort((a, b) => b.dist - a.dist); // Render back-to-front
+        .sort((a, b) => b.dist - a.dist);
 
     sortedSprites.forEach(({ ent }) => {
-        // Translate sprite position relative to camera
         const spriteX = ent.x - playerX;
         const spriteY = ent.y - playerY;
 
-        // Transform coordinates using inverse camera matrix
         const invDet = 1.0 / (Math.cos(playerAngle + Math.PI/2) * Math.sin(playerAngle) - Math.cos(playerAngle) * Math.sin(playerAngle + Math.PI/2));
 
-        // Rotate sprite to camera view
         const cosA = Math.cos(-playerAngle);
         const sinA = Math.sin(-playerAngle);
         const rotX = spriteX * cosA - spriteY * sinA;
         const rotY = spriteX * sinA + spriteY * cosA;
 
-        // Sprite is behind camera
         if (rotY <= 0.1) return;
 
         const spriteScreenX = Math.floor((screenW / 2) * (1 + rotX / rotY));
 
-        // Height and width on screen
         const spriteH = Math.abs(Math.floor(screenH / rotY)) * ent.scale;
         const spriteW = spriteH * (sprites[ent.sprite].width / sprites[ent.sprite].height);
 
-        const drawStartY = -spriteH / 2 + screenH / 2;
+        // Offset Y draw starting coordinate for DEAD bodies lying flat on the floor
+        let yOffset = 0;
+        if (ent.state === 'DEATH_2') {
+            yOffset = spriteH * 0.35; // Shifts dead puddle visual down closer to ground level
+        }
+
+        const drawStartY = -spriteH / 2 + screenH / 2 + yOffset;
         const drawStartX = spriteScreenX - spriteW / 2;
 
-        // Render sprite pixel column by column with Z-Buffering
         const img = sprites[ent.sprite];
         for (let col = 0; col < spriteW; col++) {
             const screenX = Math.floor(drawStartX + col);
             if (screenX >= 0 && screenX < screenW && rotY < wallZBuffer[screenX]) {
                 const texX = Math.floor((col / spriteW) * img.width);
 
-                // Draw single pixel column
                 ctx.drawImage(
                     img,
                     texX, 0, 1, img.height,
@@ -1438,7 +1455,7 @@ function render3D() {
         }
     });
 
-    // 4. DRAW COFFEE SPLASH PARTICLES (2D Billboards)
+    // DRAW COFFEE SPLASH PARTICLES (2D Billboards)
     particles.forEach(p => {
         const dx = p.x - playerX;
         const dy = p.y - playerY;
@@ -1461,12 +1478,11 @@ function render3D() {
         }
     });
 
-    // 5. DRAW FIRST-PERSON GUN WITH VIBRATION
+    // DRAW FIRST-PERSON WEAPON WITH BOUNCING & KICKBACKS
     const gunImg = shootAnimFrame > 0 ? sprites.gunFire : sprites.gunIdle;
     const gunWidth = Math.floor(screenW * 0.45);
     const gunHeight = gunWidth * (gunImg.height / gunImg.width);
 
-    // Add retro breathing/walking bobbing bounce
     let bobX = 0;
     let bobY = 0;
     if (keys['KeyW'] || keys['KeyS'] || keys['KeyA'] || keys['KeyD']) {
@@ -1475,7 +1491,6 @@ function render3D() {
         bobY = Math.abs(Math.sin(speedFactor)) * 6;
     }
 
-    // Slight firing vibration offset
     if (shootAnimFrame > 0) {
         bobX += (Math.random() - 0.5) * 8;
         bobY += (Math.random() - 0.5) * 8;
@@ -1489,18 +1504,23 @@ function render3D() {
         gunHeight
     );
 
-    // 6. DRAW RETRO HUD MINI CROSSHAIR
+    // RETRO HUD CROSSHAIR
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.fillRect(screenW / 2 - 2, screenH / 2 - 1, 4, 2);
     ctx.fillRect(screenW / 2 - 1, screenH / 2 - 2, 2, 4);
+
+    // DRAW SCREEN JUICE FLASH OVERLAYS
+    if (screenFlashColor) {
+        ctx.fillStyle = screenFlashColor;
+        ctx.fillRect(0, 0, screenW, screenH);
+    }
 }
 
 
-// Landing screen interactions
+// Landing screen DOM interactions
 document.addEventListener('DOMContentLoaded', () => {
     initGame();
 
-    // Select Level triggers
     const lvlBtns = document.querySelectorAll('.level-btn');
     lvlBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1511,19 +1531,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Start Game button
     document.getElementById('start-btn').addEventListener('click', () => {
         const activeBtn = document.querySelector('.level-btn.active');
         const lvl = activeBtn ? parseInt(activeBtn.dataset.level) : 1;
         startGame(lvl);
     });
 
-    // Resume button
     document.getElementById('resume-btn').addEventListener('click', () => {
         togglePause();
     });
 
-    // Quit buttons
     const quitHandler = () => {
         gameActive = false;
         isPaused = false;
@@ -1535,7 +1552,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('quit-btn').addEventListener('click', quitHandler);
     document.getElementById('gameover-quit-btn').addEventListener('click', quitHandler);
 
-    // Restart button
     document.getElementById('restart-btn').addEventListener('click', () => {
         const activeBtn = document.querySelector('.level-btn.active');
         const lvl = activeBtn ? parseInt(activeBtn.dataset.level) : 1;

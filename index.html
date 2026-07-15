@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Espresso Doom - Caffeine Rush</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for retro/coffee feel -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Main Menu -->
+        <div id="menu-screen" class="overlay">
+            <div class="menu-content">
+                <h1 class="game-title">ESPRESSO<br><span class="highlight">DOOM</span></h1>
+                <p class="tagline">CAFFEINE RUSH: HOARD SURVIVAL</p>
+
+                <div class="menu-sections">
+                    <div class="menu-section select-level">
+                        <h2>CHOOSE YOUR BREW:</h2>
+                        <div class="level-buttons">
+                            <button class="level-btn active" data-level="1">
+                                <span class="lbl-num">BREW 1</span>
+                                <span class="lbl-name">Cozy Cafe</span>
+                            </button>
+                            <button class="level-btn" data-level="2">
+                                <span class="lbl-num">BREW 2</span>
+                                <span class="lbl-name">The Office Grind</span>
+                            </button>
+                            <button class="level-btn" data-level="3">
+                                <span class="lbl-num">BREW 3</span>
+                                <span class="lbl-name">Coffee Warehouse</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="menu-section instructions">
+                        <h2>CONTROLS:</h2>
+                        <div class="control-grid">
+                            <div class="control-col">
+                                <h3>PC (Keyboard/Mouse)</h3>
+                                <ul>
+                                    <li><strong>WASD / Arrow Keys</strong>: Move / Strafe</li>
+                                    <li><strong>Mouse Look / Q, E</strong>: Turn View</li>
+                                    <li><strong>Left Click / Spacebar</strong>: Shoot Espresso</li>
+                                    <li><strong>ESC</strong>: Pause / Menu</li>
+                                </ul>
+                            </div>
+                            <div class="control-col">
+                                <h3>Mobile (Touch)</h3>
+                                <ul>
+                                    <li><strong>Left Virtual Joystick</strong>: Move & Strafe</li>
+                                    <li><strong>Right Joystick/Drag Area</strong>: Aim</li>
+                                    <li><strong>Tap/Double Tap</strong>: Fire Espresso Gun</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="high-score-board">
+                    HIGH SCORE: <span id="global-high-score">0</span> pts
+                </div>
+
+                <button id="start-btn" class="main-btn">START ESPRESSO RUSH</button>
+            </div>
+        </div>
+
+        <!-- Pause Menu -->
+        <div id="pause-screen" class="overlay hidden">
+            <div class="menu-content mini-menu">
+                <h2>GAME PAUSED</h2>
+                <p>Take a coffee break...</p>
+                <button id="resume-btn" class="main-btn">RESUME BREW</button>
+                <button id="quit-btn" class="main-btn alt-btn">QUIT TO MENU</button>
+            </div>
+        </div>
+
+        <!-- Game Over Screen -->
+        <div id="gameover-screen" class="overlay hidden">
+            <div class="menu-content mini-menu">
+                <h2 id="gameover-title" class="dead-title">CRASHED!</h2>
+                <p id="gameover-reason">You ran out of caffeine and fell asleep...</p>
+                <div class="stats-display">
+                    <p>SCORE: <span id="final-score" class="highlight">0</span></p>
+                    <p>WAVES SURVIVED: <span id="final-waves" class="highlight">0</span></p>
+                    <p>ZOMBIES HYDRATED: <span id="final-kills" class="highlight">0</span></p>
+                </div>
+                <button id="restart-btn" class="main-btn">BREW ANOTHER ROUND</button>
+                <button id="gameover-quit-btn" class="main-btn alt-btn">RETURN TO MENU</button>
+            </div>
+        </div>
+
+        <!-- HUD Layer -->
+        <div id="hud">
+            <div class="hud-item health-box">
+                <div class="hud-label">CAFFEINE</div>
+                <div class="hud-value"><span id="health-val">100</span>%</div>
+                <div class="progress-bar"><div id="health-bar" style="width: 100%;"></div></div>
+            </div>
+
+            <div class="hud-item face-box">
+                <!-- Coffee mug HUD status that fills/empties -->
+                <div id="mug-indicator">
+                    <div id="coffee-level"></div>
+                </div>
+            </div>
+
+            <div class="hud-item weapon-ammo-box">
+                <div class="hud-label">ESPRESSO AMMO</div>
+                <div class="hud-value"><span id="ammo-val">50</span> / 100</div>
+                <div class="progress-bar"><div id="ammo-bar" style="width: 50%;"></div></div>
+            </div>
+
+            <div class="hud-item score-box">
+                <div class="hud-label">SCORE</div>
+                <div class="hud-value" id="hud-score">000000</div>
+                <div class="hud-sub">WAVE: <span id="hud-wave">1</span></div>
+            </div>
+        </div>
+
+        <!-- Mobile Controls Container (Visible only on touch devices) -->
+        <div id="mobile-controls" class="hidden">
+            <div id="left-joystick-container">
+                <div id="left-joystick-base">
+                    <div id="left-joystick-knob"></div>
+                </div>
+            </div>
+            <div id="right-shoot-container">
+                <div id="right-shoot-button">FIRE</div>
+            </div>
+        </div>
+
+        <!-- 3D Raycaster Canvas -->
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Main Game Script -->
+    <script src="game.js"></script>
+</body>
+</html>

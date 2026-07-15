@@ -1,0 +1,531 @@
+/* Core Styling for Espresso Doom - Coffee Theme */
+
+:root {
+    --coffee-dark: #2c1b18;
+    --coffee-medium: #4e3629;
+    --coffee-light: #855845;
+    --coffee-cream: #d7ccc8;
+    --coffee-latte: #f5f0eb;
+    --neon-green: #4caf50;
+    --neon-orange: #ff9800;
+    --neon-red: #f44336;
+    --font-retro: 'Press Start 2P', monospace;
+    --font-modern: 'Space Grotesk', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none; /* Disables double tap zoom on mobile */
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background-color: #0d0807;
+    font-family: var(--font-modern);
+    color: var(--coffee-latte);
+}
+
+/* Fullscreen Game Container */
+#game-container {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background-color: #110908;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* Menus & Overlays */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(22, 12, 10, 0.92);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    overflow-y: auto;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s ease;
+}
+
+.overlay.hidden {
+    display: none !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.menu-content {
+    background-color: var(--coffee-dark);
+    border: 4px solid var(--coffee-light);
+    border-radius: 12px;
+    padding: 40px;
+    max-width: 800px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.mini-menu {
+    max-width: 500px;
+}
+
+/* Typography */
+.game-title {
+    font-family: var(--font-retro);
+    font-size: 3rem;
+    line-height: 1.2;
+    color: var(--coffee-latte);
+    text-shadow: 4px 4px 0px var(--coffee-medium);
+    margin-bottom: 5px;
+    letter-spacing: -2px;
+}
+
+.game-title .highlight {
+    color: var(--neon-orange);
+    text-shadow: 4px 4px 0px #9e5a00;
+}
+
+.dead-title {
+    font-family: var(--font-retro);
+    font-size: 2.5rem;
+    color: var(--neon-red);
+    text-shadow: 3px 3px 0px #6d150d;
+    margin-bottom: 10px;
+}
+
+.tagline {
+    font-family: var(--font-retro);
+    font-size: 0.9rem;
+    color: var(--coffee-cream);
+    margin-bottom: 30px;
+    letter-spacing: 1px;
+}
+
+h2 {
+    font-family: var(--font-retro);
+    font-size: 1.1rem;
+    color: var(--coffee-cream);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+h3 {
+    font-size: 1.1rem;
+    color: var(--coffee-cream);
+    margin-bottom: 10px;
+    border-bottom: 2px solid var(--coffee-medium);
+    padding-bottom: 5px;
+}
+
+/* Sections on Main Menu */
+.menu-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    width: 100%;
+    margin-bottom: 30px;
+}
+
+.menu-section {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid var(--coffee-medium);
+}
+
+/* Level Selection */
+.level-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.level-btn {
+    background-color: var(--coffee-medium);
+    border: 2px solid var(--coffee-light);
+    border-radius: 6px;
+    color: var(--coffee-latte);
+    padding: 10px 15px;
+    cursor: pointer;
+    flex: 1;
+    min-width: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.level-btn .lbl-num {
+    font-family: var(--font-retro);
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+.level-btn .lbl-name {
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.level-btn:hover {
+    background-color: var(--coffee-light);
+    border-color: var(--coffee-cream);
+}
+
+.level-btn.active {
+    background-color: var(--neon-orange);
+    border-color: var(--coffee-latte);
+    color: var(--coffee-dark);
+}
+
+/* Control instructions */
+.control-grid {
+    display: flex;
+    gap: 20px;
+    text-align: left;
+}
+
+.control-col {
+    flex: 1;
+}
+
+.control-col ul {
+    list-style: none;
+}
+
+.control-col li {
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    color: var(--coffee-cream);
+}
+
+.control-col li strong {
+    color: var(--coffee-latte);
+}
+
+/* Score display */
+.high-score-board {
+    font-family: var(--font-retro);
+    font-size: 1rem;
+    margin-bottom: 25px;
+    color: var(--neon-green);
+    background: rgba(0, 200, 0, 0.1);
+    padding: 10px 25px;
+    border-radius: 30px;
+    border: 1px solid rgba(0, 200, 0, 0.3);
+}
+
+.stats-display {
+    background: rgba(0,0,0,0.4);
+    border: 2px solid var(--coffee-medium);
+    border-radius: 8px;
+    padding: 15px;
+    width: 100%;
+    margin-bottom: 25px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.stats-display p {
+    font-family: var(--font-retro);
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.stats-display .highlight {
+    color: var(--neon-orange);
+}
+
+/* Interactive Buttons */
+.main-btn {
+    font-family: var(--font-retro);
+    font-size: 1.1rem;
+    padding: 16px 36px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--neon-green);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 6px 0px #2e7d32;
+    transition: all 0.1s ease;
+    text-transform: uppercase;
+}
+
+.main-btn:hover {
+    background-color: #66bb6a;
+}
+
+.main-btn:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0px #2e7d32;
+}
+
+.alt-btn {
+    background-color: var(--coffee-medium);
+    box-shadow: 0 6px 0px var(--coffee-dark);
+    margin-top: 15px;
+}
+
+.alt-btn:hover {
+    background-color: var(--coffee-light);
+}
+
+.alt-btn:active {
+    box-shadow: 0 2px 0px var(--coffee-dark);
+}
+
+/* Head-Up Display (HUD) */
+#hud {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--coffee-dark);
+    border-top: 4px solid var(--coffee-light);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 30px;
+    height: 90px;
+    z-index: 5;
+    font-family: var(--font-retro);
+}
+
+.hud-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+}
+
+.hud-label {
+    font-size: 0.65rem;
+    color: var(--coffee-cream);
+    letter-spacing: 1px;
+}
+
+.hud-value {
+    font-size: 1.3rem;
+    color: var(--coffee-latte);
+}
+
+.progress-bar {
+    width: 120px;
+    height: 8px;
+    background-color: #110908;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+#health-bar {
+    height: 100%;
+    background-color: var(--neon-green);
+    transition: width 0.2s ease;
+}
+
+#ammo-bar {
+    height: 100%;
+    background-color: var(--neon-orange);
+    transition: width 0.2s ease;
+}
+
+/* HUD Mug face display */
+.face-box {
+    align-items: center;
+}
+
+#mug-indicator {
+    width: 50px;
+    height: 50px;
+    background-color: var(--coffee-latte);
+    border: 3px solid var(--coffee-light);
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.3);
+}
+
+#mug-indicator::after {
+    /* Mug Handle */
+    content: '';
+    position: absolute;
+    right: 3px;
+    top: 15px;
+    width: 10px;
+    height: 15px;
+    border: 3px solid var(--coffee-light);
+    border-radius: 0 6px 6px 0;
+    border-left: none;
+    z-index: 1;
+}
+
+#coffee-level {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--coffee-medium);
+    transition: height 0.2s ease;
+}
+
+.hud-sub {
+    font-size: 0.75rem;
+    color: var(--neon-orange);
+}
+
+/* Mobile Controls Layer */
+#mobile-controls {
+    position: absolute;
+    bottom: 110px; /* Sits right above the HUD */
+    left: 0;
+    width: 100%;
+    height: calc(100vh - 200px);
+    pointer-events: none; /* Let clicks pass through except on active control buttons */
+    z-index: 6;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 20px 40px;
+}
+
+#left-joystick-container {
+    pointer-events: auto;
+    width: 130px;
+    height: 130px;
+    position: relative;
+}
+
+#left-joystick-base {
+    width: 100%;
+    height: 100%;
+    background: rgba(22, 12, 10, 0.4);
+    border: 3px solid rgba(215, 204, 200, 0.4);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#left-joystick-knob {
+    width: 50px;
+    height: 50px;
+    background: var(--coffee-light);
+    border: 2px solid var(--coffee-cream);
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    touch-action: none;
+}
+
+#right-shoot-container {
+    pointer-events: auto;
+}
+
+#right-shoot-button {
+    width: 90px;
+    height: 90px;
+    background-color: var(--neon-red);
+    border: 4px solid var(--coffee-latte);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-retro);
+    font-size: 1rem;
+    color: white;
+    box-shadow: 0 6px 0px #b71c1c, 0 10px 20px rgba(0,0,0,0.4);
+    cursor: pointer;
+    text-shadow: 1px 1px 0px rgba(0,0,0,0.5);
+    user-select: none;
+}
+
+#right-shoot-button:active {
+    transform: translateY(4px);
+    box-shadow: 0 2px 0px #b71c1c, 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .menu-content {
+        padding: 20px;
+        max-width: 95%;
+    }
+
+    .game-title {
+        font-size: 2rem;
+    }
+
+    .tagline {
+        font-size: 0.75rem;
+        margin-bottom: 20px;
+    }
+
+    .control-grid {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .menu-section {
+        padding: 12px;
+    }
+
+    #hud {
+        padding: 5px 15px;
+        height: 75px;
+    }
+
+    .hud-label {
+        font-size: 0.5rem;
+    }
+
+    .hud-value {
+        font-size: 1rem;
+    }
+
+    .progress-bar {
+        width: 80px;
+        height: 6px;
+    }
+
+    #mug-indicator {
+        width: 40px;
+        height: 40px;
+    }
+
+    #mobile-controls {
+        padding: 10px 20px;
+        bottom: 85px;
+    }
+}
